@@ -1,37 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { StepCounter } from "@/components/StepCounter";
 import { CalorieTracker } from "@/components/CalorieTracker";
 import { CalorieChart } from "@/components/CalorieChart";
 import { RecipeCard } from "@/components/RecipeCard";
 import { AIRecipeGenerator } from "@/components/AIRecipeGenerator";
-import { ChefHat, TrendingUp, BookOpen, LogOut, Dumbbell } from "lucide-react";
+import { ChefHat, TrendingUp, BookOpen, Dumbbell } from "lucide-react";
 import heroImage from "@/assets/hero-nutrition.jpg";
 import recipe1 from "@/assets/recipe-1.jpg";
 import recipe2 from "@/assets/recipe-2.jpg";
 
 const Index = () => {
-  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -44,21 +25,9 @@ const Index = () => {
             </span>
           </div>
           <div className="flex gap-4 items-center">
-            {user ? (
-              <>
-                <span className="text-sm text-muted-foreground hidden md:block">
-                  {user.email}
-                </span>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <Button variant="hero" size="sm" onClick={() => navigate("/auth")}>
-                Get Started
-              </Button>
-            )}
+            <Button variant="hero" size="sm" onClick={() => navigate("/auth")}>
+              Get Started
+            </Button>
           </div>
         </div>
       </nav>
