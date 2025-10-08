@@ -14,6 +14,196 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_goals: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          goal_type: Database["public"]["Enums"]["goal_type"]
+          id: string
+          is_active: boolean | null
+          start_date: string
+          target_calories: number
+          target_carbs: number | null
+          target_fats: number | null
+          target_fiber: number | null
+          target_protein: number | null
+          target_steps: number | null
+          target_water: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          goal_type?: Database["public"]["Enums"]["goal_type"]
+          id?: string
+          is_active?: boolean | null
+          start_date?: string
+          target_calories: number
+          target_carbs?: number | null
+          target_fats?: number | null
+          target_fiber?: number | null
+          target_protein?: number | null
+          target_steps?: number | null
+          target_water?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          goal_type?: Database["public"]["Enums"]["goal_type"]
+          id?: string
+          is_active?: boolean | null
+          start_date?: string
+          target_calories?: number
+          target_carbs?: number | null
+          target_fats?: number | null
+          target_fiber?: number | null
+          target_protein?: number | null
+          target_steps?: number | null
+          target_water?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_summaries: {
+        Row: {
+          calories_burned: number | null
+          created_at: string
+          id: string
+          summary_date: string
+          total_calories: number | null
+          total_carbs: number | null
+          total_fats: number | null
+          total_fiber: number | null
+          total_protein: number | null
+          total_steps: number | null
+          total_water: number | null
+          updated_at: string
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          calories_burned?: number | null
+          created_at?: string
+          id?: string
+          summary_date?: string
+          total_calories?: number | null
+          total_carbs?: number | null
+          total_fats?: number | null
+          total_fiber?: number | null
+          total_protein?: number | null
+          total_steps?: number | null
+          total_water?: number | null
+          updated_at?: string
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          calories_burned?: number | null
+          created_at?: string
+          id?: string
+          summary_date?: string
+          total_calories?: number | null
+          total_carbs?: number | null
+          total_fats?: number | null
+          total_fiber?: number | null
+          total_protein?: number | null
+          total_steps?: number | null
+          total_water?: number | null
+          updated_at?: string
+          user_id?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_summaries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meals: {
+        Row: {
+          calories: number
+          carbs: number | null
+          created_at: string
+          fats: number | null
+          fiber: number | null
+          id: string
+          meal_date: string
+          meal_name: string
+          meal_time: string | null
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          notes: string | null
+          protein: number | null
+          recipe_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calories?: number
+          carbs?: number | null
+          created_at?: string
+          fats?: number | null
+          fiber?: number | null
+          id?: string
+          meal_date?: string
+          meal_name: string
+          meal_time?: string | null
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          notes?: string | null
+          protein?: number | null
+          recipe_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calories?: number
+          carbs?: number | null
+          created_at?: string
+          fats?: number | null
+          fiber?: number | null
+          id?: string
+          meal_date?: string
+          meal_name?: string
+          meal_time?: string | null
+          meal_type?: Database["public"]["Enums"]["meal_type"]
+          notes?: string | null
+          protein?: number | null
+          recipe_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meals_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -41,6 +231,130 @@ export type Database = {
         }
         Relationships: []
       }
+      recipes: {
+        Row: {
+          calories_per_serving: number | null
+          carbs_per_serving: number | null
+          cook_time: number | null
+          created_at: string
+          description: string | null
+          fats_per_serving: number | null
+          id: string
+          image_url: string | null
+          ingredients: Json
+          instructions: string | null
+          is_public: boolean | null
+          prep_time: number | null
+          protein_per_serving: number | null
+          servings: number | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calories_per_serving?: number | null
+          carbs_per_serving?: number | null
+          cook_time?: number | null
+          created_at?: string
+          description?: string | null
+          fats_per_serving?: number | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          instructions?: string | null
+          is_public?: boolean | null
+          prep_time?: number | null
+          protein_per_serving?: number | null
+          servings?: number | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calories_per_serving?: number | null
+          carbs_per_serving?: number | null
+          cook_time?: number | null
+          created_at?: string
+          description?: string | null
+          fats_per_serving?: number | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          instructions?: string | null
+          is_public?: boolean | null
+          prep_time?: number | null
+          protein_per_serving?: number | null
+          servings?: number | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_activities: {
+        Row: {
+          activity_date: string
+          activity_name: string
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          calories_burned: number | null
+          created_at: string
+          distance: number | null
+          duration: number
+          id: string
+          notes: string | null
+          steps: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_date?: string
+          activity_name: string
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          calories_burned?: number | null
+          created_at?: string
+          distance?: number | null
+          duration: number
+          id?: string
+          notes?: string | null
+          steps?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_date?: string
+          activity_name?: string
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          calories_burned?: number | null
+          created_at?: string
+          distance?: number | null
+          duration?: number
+          id?: string
+          notes?: string | null
+          steps?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -49,7 +363,21 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      activity_type:
+        | "walking"
+        | "running"
+        | "cycling"
+        | "swimming"
+        | "gym"
+        | "yoga"
+        | "other"
+      goal_type:
+        | "weight_loss"
+        | "weight_gain"
+        | "muscle_gain"
+        | "maintenance"
+        | "health"
+      meal_type: "breakfast" | "lunch" | "dinner" | "snack"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -176,6 +504,24 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activity_type: [
+        "walking",
+        "running",
+        "cycling",
+        "swimming",
+        "gym",
+        "yoga",
+        "other",
+      ],
+      goal_type: [
+        "weight_loss",
+        "weight_gain",
+        "muscle_gain",
+        "maintenance",
+        "health",
+      ],
+      meal_type: ["breakfast", "lunch", "dinner", "snack"],
+    },
   },
 } as const
