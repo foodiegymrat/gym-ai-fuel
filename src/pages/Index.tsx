@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { StepCounter } from "@/components/StepCounter";
+import { AdvancedStepCounter } from "@/components/AdvancedStepCounter";
 import { CalorieTracker } from "@/components/CalorieTracker";
 import { CalorieChart } from "@/components/CalorieChart";
 import { RecipeCard } from "@/components/RecipeCard";
@@ -71,7 +71,7 @@ const Index = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <CalorieTracker />
-          <StepCounter />
+          <AdvancedStepCounter />
           <AIRecipeGenerator />
         </div>
 
