@@ -1,20 +1,10 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const AIRecipeGenerator = () => {
-  const [loading, setLoading] = useState(false);
-
-  const generateRecipe = () => {
-    setLoading(true);
-    // Simulated AI generation
-    setTimeout(() => {
-      setLoading(false);
-      toast.success("AI recipe generated! Check your recipes page");
-    }, 2000);
-  };
+  const navigate = useNavigate();
 
   return (
     <Card className="bg-gradient-to-br from-card to-secondary border-primary/20 hover:shadow-[var(--shadow-glow)] transition-all duration-300">
@@ -29,12 +19,11 @@ export const AIRecipeGenerator = () => {
           Get personalized high-protein recipes based on your fitness goals and dietary preferences.
         </p>
         <Button 
-          onClick={generateRecipe} 
-          disabled={loading}
+          onClick={() => navigate('/recipe-generator')}
           variant="hero"
           className="w-full"
         >
-          {loading ? "Generating..." : "Generate Recipe with AI"}
+          Generate Recipe with AI
         </Button>
         <p className="text-xs text-muted-foreground mt-3 text-center">
           Powered by AI to optimize your nutrition
