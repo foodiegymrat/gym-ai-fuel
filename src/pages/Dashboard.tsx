@@ -10,6 +10,7 @@ import { CalorieTracker } from "@/components/CalorieTracker";
 import { CalorieChart } from "@/components/CalorieChart";
 import { AIRecipeGenerator } from "@/components/AIRecipeGenerator";
 import { StepHistory } from "@/components/StepHistory";
+import { AIFoodScanner } from "@/components/AIFoodScanner";
 import { useToast } from "@/hooks/use-toast";
 import { Dumbbell, LogOut, User as UserIcon, TrendingUp, Activity } from "lucide-react";
 
@@ -167,8 +168,12 @@ const Dashboard = () => {
             Today's Progress
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <CalorieTracker />
+            <AIFoodScanner />
             <AdvancedStepCounter />
+            <CalorieTracker />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <AIRecipeGenerator />
           </div>
         </section>
