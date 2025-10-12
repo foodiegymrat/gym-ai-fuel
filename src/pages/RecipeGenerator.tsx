@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Camera, Clock, ChefHat, Upload } from "lucide-react";
+import { ArrowLeft, Camera, Clock, ChefHat, Upload, Save, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 export default function RecipeGenerator() {
   const navigate = useNavigate();
@@ -17,6 +18,14 @@ export default function RecipeGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [recipe, setRecipe] = useState<any>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+  }, []);
 
   const timeOptions = [5, 10, 15, 20, 30, 45, 60];
 
@@ -72,10 +81,62 @@ export default function RecipeGenerator() {
 
       setRecipe(data);
       setStep(3);
+      setIsSaved(false);
       toast.success('Recipe generated successfully!');
     } catch (error) {
       console.error('Error generating recipe:', error);
       toast.error('Failed to generate recipe');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveRecipe = async () => {
+    if (!user) {
+      toast.error('Please log in to save recipes');
+      navigate('/auth');
+      return;
+    }
+
+    if (!recipe) return;
+
+    setIsLoading(true);
+    try {
+      // Transform ingredients array to JSONB format
+      const ingredientsJson = recipe.ingredients.map((ing: string) => ({
+        name: ing,
+        amount: ing
+      }));
+
+      // Combine instructions into a single text
+      const instructionsText = recipe.instructions
+        .map((inst: string, idx: number) => `${idx + 1}. ${inst}`)
+        .join('\n\n');
+
+      const { error } = await supabase
+        .from('recipes')
+        .insert({
+          user_id: user.id,
+          title: recipe.title,
+          description: recipe.description,
+          servings: recipe.servings,
+          ingredients: ingredientsJson,
+          instructions: instructionsText,
+          calories_per_serving: parseFloat(recipe.nutrition.calories) || 0,
+          protein_per_serving: parseFloat(recipe.nutrition.protein) || 0,
+          carbs_per_serving: parseFloat(recipe.nutrition.carbs) || 0,
+          fats_per_serving: parseFloat(recipe.nutrition.fats) || 0,
+          cook_time: cookingTime,
+          tags: [recipe.difficulty, 'AI-Generated'],
+        });
+
+      if (error) throw error;
+
+      setIsSaved(true);
+      toast.success('Recipe saved successfully!');
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      toast.error('Failed to save recipe');
     } finally {
       setIsLoading(false);
     }
@@ -313,23 +374,42 @@ export default function RecipeGenerator() {
               <div className="flex gap-3">
                 <Button
                   variant="outline"
+                  onClick={handleSaveRecipe}
+                  disabled={isLoading || isSaved}
+                  className="flex-1"
+                >
+                  {isSaved ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Saved
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      {isLoading ? 'Saving...' : 'Save Recipe'}
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => {
                     setStep(1);
                     setIngredients("");
                     setCookingTime(null);
                     setRecipe(null);
                     setImageFile(null);
+                    setIsSaved(false);
                   }}
                   className="flex-1"
                 >
-                  Generate Another Recipe
+                  Generate Another
                 </Button>
                 <Button
                   onClick={() => navigate('/dashboard')}
                   className="flex-1"
                   variant="hero"
                 >
-                  Back to Dashboard
+                  Dashboard
                 </Button>
               </div>
             </CardContent>
