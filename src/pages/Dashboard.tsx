@@ -11,6 +11,7 @@ import { CalorieChart } from "@/components/CalorieChart";
 import { AIRecipeGenerator } from "@/components/AIRecipeGenerator";
 import { StepHistory } from "@/components/StepHistory";
 import { AIFoodScanner } from "@/components/AIFoodScanner";
+import { RecommendedRecipes } from "@/components/RecommendedRecipes";
 import { useToast } from "@/hooks/use-toast";
 import { Dumbbell, LogOut, User as UserIcon, TrendingUp, Activity } from "lucide-react";
 
@@ -188,6 +189,11 @@ const Dashboard = () => {
             <CalorieChart />
             <StepHistory />
           </div>
+        </section>
+
+        {/* Recommended Recipes Section */}
+        <section>
+          <RecommendedRecipes />
         </section>
       </main>
     </div>
