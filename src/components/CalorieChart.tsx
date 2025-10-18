@@ -1,29 +1,201 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { supabase } from "@/integrations/supabase/client";
+import { format, subDays, startOfDay, endOfDay, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { Loader2 } from "lucide-react";
 
-const generateData = (days: number) => {
-  return Array.from({ length: days }, (_, i) => ({
-    name: i === days - 1 ? 'Today' : `Day ${i + 1}`,
-    calories: Math.floor(Math.random() * 1000) + 1500,
-  }));
-};
-
-const weekData = generateData(7);
-const monthData = generateData(30);
-const yearData = generateData(12).map((d, i) => ({ ...d, name: `Month ${i + 1}` }));
+interface ChartData {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  goal?: number;
+}
 
 export const CalorieChart = () => {
   const [period, setPeriod] = useState("week");
+  const [data, setData] = useState<ChartData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dailyGoal, setDailyGoal] = useState(2500);
 
-  const getData = () => {
-    switch (period) {
-      case "day": return [{ name: "Morning", calories: 500 }, { name: "Noon", calories: 800 }, { name: "Evening", calories: 1200 }];
-      case "week": return weekData;
-      case "month": return monthData;
-      case "year": return yearData;
-      default: return weekData;
+  useEffect(() => {
+    fetchGoal();
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [period]);
+
+  const fetchGoal = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: goalData } = await supabase
+        .from('daily_goals')
+        .select('target_calories')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (goalData?.target_calories) {
+        setDailyGoal(goalData.target_calories);
+      }
+    } catch (error) {
+      console.error('Error fetching goal:', error);
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setData([]);
+        return;
+      }
+
+      let startDate: Date;
+      let endDate = new Date();
+      let groupBy: 'day' | 'week' | 'month' = 'day';
+
+      switch (period) {
+        case "day":
+          startDate = startOfDay(new Date());
+          endDate = endOfDay(new Date());
+          const { data: todayMeals } = await supabase
+            .from('meals')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('meal_date', format(startDate, 'yyyy-MM-dd'))
+            .lte('meal_date', format(endDate, 'yyyy-MM-dd'))
+            .order('meal_time', { ascending: true });
+
+          const hourlyData: { [key: string]: ChartData } = {};
+          todayMeals?.forEach(meal => {
+            const hour = meal.meal_time ? parseInt(meal.meal_time.split(':')[0]) : 12;
+            const period = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
+            
+            if (!hourlyData[period]) {
+              hourlyData[period] = { name: period, calories: 0, protein: 0, carbs: 0, fats: 0, goal: dailyGoal / 3 };
+            }
+            hourlyData[period].calories += Number(meal.calories) || 0;
+            hourlyData[period].protein += Number(meal.protein) || 0;
+            hourlyData[period].carbs += Number(meal.carbs) || 0;
+            hourlyData[period].fats += Number(meal.fats) || 0;
+          });
+          
+          setData(['Morning', 'Afternoon', 'Evening'].map(p => 
+            hourlyData[p] || { name: p, calories: 0, protein: 0, carbs: 0, fats: 0, goal: dailyGoal / 3 }
+          ));
+          break;
+
+        case "week":
+          startDate = subDays(new Date(), 6);
+          const { data: weekData } = await supabase
+            .from('daily_summaries')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('summary_date', format(startDate, 'yyyy-MM-dd'))
+            .lte('summary_date', format(endDate, 'yyyy-MM-dd'))
+            .order('summary_date', { ascending: true });
+
+          const last7Days = Array.from({ length: 7 }, (_, i) => {
+            const date = subDays(new Date(), 6 - i);
+            const dateStr = format(date, 'yyyy-MM-dd');
+            const dayData = weekData?.find(d => d.summary_date === dateStr);
+            
+            return {
+              name: i === 6 ? 'Today' : format(date, 'EEE'),
+              calories: Number(dayData?.total_calories) || 0,
+              protein: Number(dayData?.total_protein) || 0,
+              carbs: Number(dayData?.total_carbs) || 0,
+              fats: Number(dayData?.total_fats) || 0,
+              goal: dailyGoal
+            };
+          });
+          setData(last7Days);
+          break;
+
+        case "month":
+          startDate = subDays(new Date(), 29);
+          const { data: monthData } = await supabase
+            .from('daily_summaries')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('summary_date', format(startDate, 'yyyy-MM-dd'))
+            .lte('summary_date', format(endDate, 'yyyy-MM-dd'))
+            .order('summary_date', { ascending: true });
+
+          const last30Days = Array.from({ length: 30 }, (_, i) => {
+            const date = subDays(new Date(), 29 - i);
+            const dateStr = format(date, 'yyyy-MM-dd');
+            const dayData = monthData?.find(d => d.summary_date === dateStr);
+            
+            return {
+              name: format(date, 'MMM d'),
+              calories: Number(dayData?.total_calories) || 0,
+              protein: Number(dayData?.total_protein) || 0,
+              carbs: Number(dayData?.total_carbs) || 0,
+              fats: Number(dayData?.total_fats) || 0,
+              goal: dailyGoal
+            };
+          });
+          setData(last30Days);
+          break;
+
+        case "year":
+          startDate = subMonths(new Date(), 11);
+          const { data: yearData } = await supabase
+            .from('daily_summaries')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('summary_date', format(startOfMonth(startDate), 'yyyy-MM-dd'))
+            .lte('summary_date', format(endDate, 'yyyy-MM-dd'))
+            .order('summary_date', { ascending: true });
+
+          const last12Months = Array.from({ length: 12 }, (_, i) => {
+            const monthStart = startOfMonth(subMonths(new Date(), 11 - i));
+            const monthEnd = endOfMonth(monthStart);
+            const monthStartStr = format(monthStart, 'yyyy-MM-dd');
+            const monthEndStr = format(monthEnd, 'yyyy-MM-dd');
+            
+            const monthTotal = yearData?.filter(d => 
+              d.summary_date >= monthStartStr && d.summary_date <= monthEndStr
+            ).reduce((acc, d) => ({
+              calories: acc.calories + Number(d.total_calories || 0),
+              protein: acc.protein + Number(d.total_protein || 0),
+              carbs: acc.carbs + Number(d.total_carbs || 0),
+              fats: acc.fats + Number(d.total_fats || 0)
+            }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+
+            const daysInMonth = yearData?.filter(d => 
+              d.summary_date >= monthStartStr && d.summary_date <= monthEndStr
+            ).length || 1;
+
+            return {
+              name: format(monthStart, 'MMM'),
+              calories: Math.round(monthTotal!.calories / daysInMonth),
+              protein: Math.round(monthTotal!.protein / daysInMonth),
+              carbs: Math.round(monthTotal!.carbs / daysInMonth),
+              fats: Math.round(monthTotal!.fats / daysInMonth),
+              goal: dailyGoal
+            };
+          });
+          setData(last12Months);
+          break;
+
+        default:
+          setData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching calorie data:', error);
+      setData([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -41,33 +213,62 @@ export const CalorieChart = () => {
             <TabsTrigger value="year">Year</TabsTrigger>
           </TabsList>
           <TabsContent value={period} className="mt-6">
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={getData()}>
-                <defs>
-                  <linearGradient id="calorieGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(160 84% 45%)" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="hsl(160 84% 45%)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 15% 20%)" />
-                <XAxis dataKey="name" stroke="hsl(160 5% 65%)" />
-                <YAxis stroke="hsl(160 5% 65%)" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: "hsl(220 18% 12%)", 
-                    border: "1px solid hsl(220 15% 20%)",
-                    borderRadius: "0.75rem"
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="calories" 
-                  stroke="hsl(160 84% 45%)" 
-                  strokeWidth={2}
-                  fill="url(#calorieGradient)" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {loading ? (
+              <div className="flex items-center justify-center h-[300px]">
+                <Loader2 className="h-8 w-8 animate-spin text-accent" />
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={data}>
+                  <defs>
+                    <linearGradient id="calorieGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(160 84% 45%)" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="hsl(160 84% 45%)" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="proteinGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(220 84% 55%)" stopOpacity={0.6}/>
+                      <stop offset="95%" stopColor="hsl(220 84% 55%)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 15% 20%)" />
+                  <XAxis dataKey="name" stroke="hsl(160 5% 65%)" />
+                  <YAxis stroke="hsl(160 5% 65%)" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(220 18% 12%)", 
+                      border: "1px solid hsl(220 15% 20%)",
+                      borderRadius: "0.75rem"
+                    }}
+                  />
+                  <Legend />
+                  <Area 
+                    type="monotone" 
+                    dataKey="goal" 
+                    stroke="hsl(0 0% 60%)" 
+                    strokeWidth={1}
+                    strokeDasharray="5 5"
+                    fill="none"
+                    name="Daily Goal"
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="calories" 
+                    stroke="hsl(160 84% 45%)" 
+                    strokeWidth={2}
+                    fill="url(#calorieGradient)"
+                    name="Calories"
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="protein" 
+                    stroke="hsl(220 84% 55%)" 
+                    strokeWidth={1}
+                    fill="url(#proteinGradient)"
+                    name="Protein (g)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>
