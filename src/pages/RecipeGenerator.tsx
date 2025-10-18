@@ -5,10 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Camera, Clock, ChefHat, Upload, Save, Check } from "lucide-react";
+import { ArrowLeft, Camera, Clock, ChefHat, Upload, Save, Check, MoreVertical, Share2, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function RecipeGenerator() {
   const navigate = useNavigate();
@@ -372,24 +378,39 @@ export default function RecipeGenerator() {
               )}
 
               <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleSaveRecipe}
-                  disabled={isLoading || isSaved}
-                  className="flex-1"
-                >
-                  {isSaved ? (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Saved
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      {isLoading ? 'Saving...' : 'Save Recipe'}
-                    </>
-                  )}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem onClick={handleSaveRecipe} disabled={isLoading || isSaved}>
+                      {isSaved ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Recipe Saved
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Recipe
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.print()}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Recipe
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success('Link copied to clipboard');
+                    }}>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share Recipe
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button
                   variant="outline"
                   onClick={() => {
