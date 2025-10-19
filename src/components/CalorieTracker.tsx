@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, TrendingUp, TrendingDown } from "lucide-react";
+import { Flame, TrendingUp, TrendingDown, Edit2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 export const CalorieTracker = () => {
   const [calories, setCalories] = useState(0);
@@ -12,6 +17,11 @@ export const CalorieTracker = () => {
   const [dailyGoal, setDailyGoal] = useState(2500);
   const [proteinGoal, setProteinGoal] = useState(150);
   const [loading, setLoading] = useState(true);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editGoal, setEditGoal] = useState(2500);
+  const [editProteinGoal, setEditProteinGoal] = useState(150);
+  const [goalId, setGoalId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchTodaysData();
@@ -74,11 +84,65 @@ export const CalorieTracker = () => {
       if (goal) {
         setDailyGoal(goal.target_calories || 2500);
         setProteinGoal(Number(goal.target_protein) || 150);
+        setEditGoal(goal.target_calories || 2500);
+        setEditProteinGoal(Number(goal.target_protein) || 150);
+        setGoalId(goal.id);
       }
     } catch (error) {
       console.error('Error fetching today\'s data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveGoal = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (goalId) {
+        // Update existing goal
+        const { error } = await supabase
+          .from('daily_goals')
+          .update({
+            target_calories: editGoal,
+            target_protein: editProteinGoal,
+          })
+          .eq('id', goalId);
+
+        if (error) throw error;
+      } else {
+        // Create new goal
+        const { error } = await supabase
+          .from('daily_goals')
+          .insert({
+            user_id: user.id,
+            target_calories: editGoal,
+            target_protein: editProteinGoal,
+            goal_type: 'maintenance',
+            is_active: true,
+          });
+
+        if (error) throw error;
+      }
+
+      setDailyGoal(editGoal);
+      setProteinGoal(editProteinGoal);
+      setIsEditOpen(false);
+      
+      toast({
+        title: "Goal updated",
+        description: "Your daily calorie goal has been updated successfully.",
+      });
+
+      fetchTodaysData();
+    } catch (error) {
+      console.error('Error saving goal:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update your goal. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -90,7 +154,46 @@ export const CalorieTracker = () => {
     <Card className="bg-card hover:shadow-[var(--shadow-card)] transition-all duration-300">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Calorie Intake</CardTitle>
-        <Flame className="h-4 w-4 text-accent" />
+        <div className="flex items-center gap-2">
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Edit2 className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Daily Goals</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="calories">Daily Calorie Goal</Label>
+                  <Input
+                    id="calories"
+                    type="number"
+                    value={editGoal}
+                    onChange={(e) => setEditGoal(Number(e.target.value))}
+                    placeholder="2500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="protein">Daily Protein Goal (g)</Label>
+                  <Input
+                    id="protein"
+                    type="number"
+                    value={editProteinGoal}
+                    onChange={(e) => setEditProteinGoal(Number(e.target.value))}
+                    placeholder="150"
+                  />
+                </div>
+                <Button onClick={handleSaveGoal} className="w-full">
+                  Save Goals
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Flame className="h-4 w-4 text-accent" />
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
