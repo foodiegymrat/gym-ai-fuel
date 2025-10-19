@@ -109,7 +109,7 @@ export const CalorieChart = () => {
             const dayData = weekData?.find(d => d.summary_date === dateStr);
             
             return {
-              name: i === 6 ? 'Today' : format(date, 'EEE'),
+              name: i === 6 ? `Today\n${format(date, 'MMM d')}` : `${format(date, 'EEE')}\n${format(date, 'MMM d')}`,
               calories: Number(dayData?.total_calories) || 0,
               protein: Number(dayData?.total_protein) || 0,
               carbs: Number(dayData?.total_carbs) || 0,
