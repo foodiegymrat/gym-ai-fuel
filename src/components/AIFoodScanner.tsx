@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Camera, Upload, Loader2, Edit2, Save, X } from "lucide-react";
+import { Camera, Upload, Loader2, Edit2, Save, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -35,6 +35,7 @@ export const AIFoodScanner = () => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editedFood, setEditedFood] = useState<FoodItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -119,6 +120,64 @@ export const AIFoodScanner = () => {
     }
   };
 
+  const addMeal = async () => {
+    if (!result) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please login to add meals');
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+
+      // Check if today's summary exists
+      const { data: existingSummary } = await supabase
+        .from('daily_summaries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('summary_date', today)
+        .single();
+
+      if (existingSummary) {
+        // Update existing summary
+        const { error } = await supabase
+          .from('daily_summaries')
+          .update({
+            total_calories: existingSummary.total_calories + result.total.calories,
+            total_protein: existingSummary.total_protein + result.total.protein,
+            total_carbs: existingSummary.total_carbs + result.total.carbs,
+            total_fats: existingSummary.total_fats + result.total.fats,
+          })
+          .eq('id', existingSummary.id);
+
+        if (error) throw error;
+      } else {
+        // Create new summary
+        const { error } = await supabase
+          .from('daily_summaries')
+          .insert({
+            user_id: user.id,
+            summary_date: today,
+            total_calories: result.total.calories,
+            total_protein: result.total.protein,
+            total_carbs: result.total.carbs,
+            total_fats: result.total.fats,
+          });
+
+        if (error) throw error;
+      }
+
+      toast.success(`Added ${result.total.calories} calories to your daily intake!`);
+      setResult(null);
+      setImagePreview(null);
+    } catch (error) {
+      console.error('Error adding meal:', error);
+      toast.error('Failed to add meal');
+    }
+  };
+
   const saveMeal = async () => {
     if (!result) return;
 
@@ -170,13 +229,29 @@ export const AIFoodScanner = () => {
               className="hidden"
               onChange={(e) => e.target.files?.[0] && handleImageSelect(e.target.files[0])}
             />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && handleImageSelect(e.target.files[0])}
+            />
             <Button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => cameraInputRef.current?.click()}
               className="w-full"
               variant="default"
             >
+              <Camera className="h-4 w-4 mr-2" />
+              Take Photo
+            </Button>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full"
+              variant="outline"
+            >
               <Upload className="h-4 w-4 mr-2" />
-              Upload Food Photo
+              Upload Photo
             </Button>
           </div>
         ) : (
@@ -295,7 +370,11 @@ export const AIFoodScanner = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button onClick={saveMeal} className="flex-1" variant="default">
+                  <Button onClick={addMeal} className="flex-1" variant="default">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Meal
+                  </Button>
+                  <Button onClick={saveMeal} className="flex-1" variant="outline">
                     Save Meal
                   </Button>
                   <Button
