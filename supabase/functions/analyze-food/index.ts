@@ -32,18 +32,49 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro',
         messages: [
           {
             role: 'system',
-            content: 'You are a nutrition expert AI. Analyze food images and provide detailed nutritional information.'
+            content: `You are an expert nutritionist and food analyst with extensive knowledge of international cuisines and their nutritional values. Your analysis must be:
+- HIGHLY ACCURATE: Use USDA and international food databases as reference
+- COMPREHENSIVE: Identify ALL food items visible, including small garnishes, condiments, and ingredients
+- PRECISE: Provide exact portion sizes in standard measurements (grams, ounces, cups, pieces)
+- DETAILED: Break down complex dishes into individual components
+- CONTEXTUAL: Consider cooking methods (fried, baked, grilled) that affect caloric content
+- SCIENTIFIC: Use verified nutritional data for your estimates`
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Analyze this food image and identify all food items. For each item, estimate: portion size, calories, protein (g), carbs (g), fats (g), and fiber (g). Return ONLY valid JSON in this exact format: {"foods": [{"name": "food name", "portion": "estimated portion", "calories": number, "protein": number, "carbs": number, "fats": number, "fiber": number}], "total": {"calories": number, "protein": number, "carbs": number, "fats": number, "fiber": number}}'
+                text: `Perform a THOROUGH nutritional analysis of this food image. Follow these steps:
+
+1. IDENTIFY ALL FOOD ITEMS:
+   - Main dishes, sides, and accompaniments
+   - Small items like herbs, sauces, toppings, and garnishes
+   - Hidden ingredients (oils, butter, seasonings)
+   - Beverages if present
+
+2. ESTIMATE PORTIONS ACCURATELY:
+   - Use visual references (plate size, utensils) for scale
+   - Provide measurements in common units (e.g., "150g", "1 medium piece", "2 tablespoons")
+   - Consider density and weight of different foods
+
+3. CALCULATE NUTRITIONAL VALUES:
+   - Calories: Total energy content
+   - Protein: In grams, with 1 decimal precision
+   - Carbs: Total carbohydrates in grams, with 1 decimal precision
+   - Fats: Total fats in grams, with 1 decimal precision
+   - Fiber: Dietary fiber in grams, with 1 decimal precision
+
+4. ACCOUNT FOR COOKING METHODS:
+   - Added oils or butter in cooking
+   - Breading or coating
+   - Preparation style impact on nutrition
+
+Provide highly accurate estimates based on standard food databases (USDA, international nutrition data). Be as precise as possible with portion sizes and nutritional values.`
               },
               {
                 type: 'image_url',
