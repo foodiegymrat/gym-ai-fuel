@@ -74,7 +74,13 @@ const Auth = () => {
           if (error.message.includes("Invalid login credentials")) {
             toast({
               title: "Login Failed",
-              description: "Invalid email or password. Please try again.",
+              description: "Invalid email or password. Please check your email for a confirmation link if you just signed up.",
+              variant: "destructive",
+            });
+          } else if (error.message.includes("Email not confirmed")) {
+            toast({
+              title: "Email Not Confirmed",
+              description: "Please check your email and click the confirmation link before logging in.",
               variant: "destructive",
             });
           } else {
@@ -93,7 +99,7 @@ const Auth = () => {
       } else {
         // Sign up
         const redirectUrl = `${window.location.origin}/dashboard`;
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -119,10 +125,21 @@ const Auth = () => {
             });
           }
         } else {
-          toast({
-            title: "Account Created!",
-            description: "You can now log in to your account.",
-          });
+          // Check if email confirmation is required
+          const confirmationRequired = data.user && !data.session;
+          
+          if (confirmationRequired) {
+            toast({
+              title: "Check Your Email!",
+              description: "We've sent you a confirmation link. Please check your email (including spam folder) and click the link to activate your account.",
+              duration: 10000,
+            });
+          } else {
+            toast({
+              title: "Account Created!",
+              description: "You can now log in to your account.",
+            });
+          }
           setIsLogin(true);
         }
       }
