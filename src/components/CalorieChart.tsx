@@ -27,7 +27,30 @@ export const CalorieChart = () => {
 
   useEffect(() => {
     fetchData();
-  }, [period]);
+  }, [period, dailyGoal]);
+
+  useEffect(() => {
+    // Set up realtime subscription for daily_summaries changes
+    const channel = supabase
+      .channel('calorie-chart-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'daily_summaries'
+        },
+        (payload) => {
+          console.log('Daily summary changed:', payload);
+          fetchData(); // Refresh chart data when summaries change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [period, dailyGoal]);
 
   const fetchGoal = async () => {
     try {
