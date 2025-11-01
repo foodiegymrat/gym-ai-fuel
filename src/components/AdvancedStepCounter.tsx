@@ -7,8 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Footprints, 
-  Play, 
-  Pause, 
   RotateCcw, 
   Flame, 
   TrendingUp, 
@@ -58,63 +56,23 @@ export const AdvancedStepCounter = ({
 
   const activityStyle = getActivityStyle();
 
-  // Handle start tracking
-  const handleStart = async () => {
-    await startTracking();
-    setSessionStartTime(new Date());
-    
-    if (!permissionGranted) {
-      toast({
-        title: "Permission Required",
-        description: "Please grant motion sensor permissions to track steps accurately.",
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Tracking Started",
-        description: "AI-powered step detection is now active!",
-      });
-    }
-  };
-
-  // Handle stop tracking and save to database
-  const handleStop = async () => {
-    await stopTracking();
-    
-    if (userId && sessionStartTime && stepData.steps > 0) {
-      try {
-        // Save activity to database
-        const { error } = await supabase
-          .from('user_activities')
-          .insert({
-            user_id: userId,
-            activity_type: stepData.activityType === 'idle' ? 'walking' : stepData.activityType,
-            activity_name: `${activityStyle.label} Session`,
-            activity_date: new Date().toISOString().split('T')[0],
-            duration: Math.round((Date.now() - sessionStartTime.getTime()) / 1000 / 60), // minutes
-            calories_burned: stepData.calories,
-            distance: stepData.distance / 1000, // convert to km
-            steps: stepData.steps
-          });
-
-        if (error) throw error;
-
+  // Auto-start tracking on mount
+  useEffect(() => {
+    const initializeTracking = async () => {
+      await startTracking();
+      setSessionStartTime(new Date());
+      
+      if (!permissionGranted) {
         toast({
-          title: "Activity Saved",
-          description: `${stepData.steps} steps recorded successfully!`,
-        });
-      } catch (error) {
-        console.error('Error saving activity:', error);
-        toast({
-          title: "Error",
-          description: "Failed to save activity data.",
+          title: "Permission Required",
+          description: "Please grant motion sensor permissions to track steps accurately.",
           variant: "destructive"
         });
       }
-    }
-    
-    setSessionStartTime(null);
-  };
+    };
+
+    initializeTracking();
+  }, []);
 
   // Handle reset
   const handleReset = () => {
@@ -219,34 +177,15 @@ export const AdvancedStepCounter = ({
         </div>
 
         {/* Control buttons */}
-        <div className="flex gap-2">
-          {!isTracking ? (
-            <Button 
-              onClick={handleStart} 
-              className="flex-1"
-              variant="default"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Start
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleStop} 
-              className="flex-1"
-              variant="secondary"
-            >
-              <Pause className="h-4 w-4 mr-2" />
-              Stop
-            </Button>
-          )}
-          
+        <div className="flex justify-end">
           <Button 
             onClick={handleReset} 
             variant="outline"
-            size="icon"
-            disabled={isTracking}
+            size="sm"
+            disabled={isTracking && stepData.steps === 0}
           >
-            <RotateCcw className="h-4 w-4" />
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset
           </Button>
         </div>
 
