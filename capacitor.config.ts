@@ -10,8 +10,8 @@ const config: CapacitorConfig = {
   },
   plugins: {
     Motion: {
-      accelInterval: 50, // 50ms for smooth real-time tracking
-      gyroInterval: 50
+      accelInterval: 20, // 20ms (50Hz) for highly accurate real-time tracking
+      gyroInterval: 100  // Gyro not needed for steps, reduce frequency
     }
   }
 };

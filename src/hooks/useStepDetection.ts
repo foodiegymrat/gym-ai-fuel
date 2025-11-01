@@ -35,9 +35,12 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
   const lastStepTimeRef = useRef<number>(0);
   const peakDetectionRef = useRef({
     lastPeak: 0,
-    threshold: 1.2, // Dynamic threshold
-    minPeakDistance: 200, // Minimum 200ms between steps
-    adaptiveThreshold: true
+    threshold: 1.3, // More sensitive threshold for better detection
+    minPeakDistance: 250, // 250ms between steps for accurate walking detection
+    maxPeakDistance: 2000, // Maximum 2s between steps to maintain continuity
+    adaptiveThreshold: true,
+    calibrationSamples: 0,
+    baselineAccel: 9.8 // Standard gravity
   });
 
   // Smoothing and noise reduction
@@ -48,13 +51,19 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
   // Calculate stride length based on height
   const strideLength = (userHeight * 0.415) / 100; // in meters
 
-  // Apply low-pass filter for noise reduction
-  const lowPassFilter = (data: number[], alpha: number = 0.8): number => {
+  // Apply low-pass filter for noise reduction (Butterworth-like)
+  const lowPassFilter = (data: number[], alpha: number = 0.85): number => {
     if (data.length === 0) return 0;
-    return data.reduce((acc, val, i) => {
-      if (i === 0) return val;
-      return alpha * val + (1 - alpha) * acc;
-    }, data[0]);
+    let filtered = data[0];
+    for (let i = 1; i < data.length; i++) {
+      filtered = alpha * data[i] + (1 - alpha) * filtered;
+    }
+    return filtered;
+  };
+
+  // High-pass filter to remove gravity component
+  const highPassFilter = (magnitude: number, baseline: number): number => {
+    return Math.abs(magnitude - baseline);
   };
 
   // Calculate magnitude of acceleration vector
@@ -62,17 +71,24 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
     return Math.sqrt(x * x + y * y + z * z);
   };
 
-  // Adaptive threshold based on recent activity
+  // Adaptive threshold with calibration based on recent activity
   const updateAdaptiveThreshold = useCallback((magnitudes: number[]) => {
-    if (magnitudes.length < 10) return;
+    if (magnitudes.length < 20) return;
     
-    const recentMags = magnitudes.slice(-50);
+    const recentMags = magnitudes.slice(-100);
     const mean = recentMags.reduce((a, b) => a + b, 0) / recentMags.length;
     const variance = recentMags.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / recentMags.length;
     const stdDev = Math.sqrt(variance);
     
-    // Adaptive threshold: mean + 1.5 * standard deviation
-    peakDetectionRef.current.threshold = Math.max(1.0, mean + 1.5 * stdDev);
+    // Adaptive threshold: mean + 1.2 * standard deviation for better sensitivity
+    const newThreshold = Math.max(0.8, Math.min(2.5, mean + 1.2 * stdDev));
+    peakDetectionRef.current.threshold = newThreshold;
+    
+    // Update baseline if calibration is ongoing
+    if (peakDetectionRef.current.calibrationSamples < 100) {
+      peakDetectionRef.current.baselineAccel = mean;
+      peakDetectionRef.current.calibrationSamples++;
+    }
   }, []);
 
   // Detect activity type based on pace and magnitude
@@ -107,33 +123,50 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
     return MET[activityType] * userWeight * durationHours;
   }, [userWeight]);
 
-  // Advanced peak detection algorithm
+  // Advanced peak detection algorithm with multi-stage filtering
   const detectStep = useCallback((magnitude: number, timestamp: number) => {
-    const { lastPeak, threshold, minPeakDistance } = peakDetectionRef.current;
+    const { lastPeak, threshold, minPeakDistance, maxPeakDistance, baselineAccel } = peakDetectionRef.current;
     
     // Check if enough time has passed since last step
-    if (timestamp - lastStepTimeRef.current < minPeakDistance) {
+    const timeSinceLastStep = timestamp - lastStepTimeRef.current;
+    if (timeSinceLastStep < minPeakDistance) {
       return false;
     }
 
+    // Reset if too much time has passed (user stopped walking)
+    if (timeSinceLastStep > maxPeakDistance && lastStepTimeRef.current > 0) {
+      smoothingWindow.current = [];
+      peakDetectionRef.current.lastPeak = 0;
+    }
+
+    // Apply high-pass filter to remove gravity
+    const filteredMagnitude = highPassFilter(magnitude, baselineAccel);
+
     // Apply smoothing
-    smoothingWindow.current.push(magnitude);
+    smoothingWindow.current.push(filteredMagnitude);
     if (smoothingWindow.current.length > SMOOTHING_SIZE) {
       smoothingWindow.current.shift();
     }
     
     const smoothedMag = lowPassFilter(smoothingWindow.current);
     
-    // Peak detection: current value is higher than threshold and neighbors
-    const recentBuffer = accelBufferRef.current.slice(-5);
-    if (recentBuffer.length >= 3) {
-      const prev = recentBuffer[recentBuffer.length - 2]?.z || 0;
-      const prevPrev = recentBuffer[recentBuffer.length - 3]?.z || 0;
+    // Enhanced peak detection with derivative analysis
+    const recentBuffer = accelBufferRef.current.slice(-7);
+    if (recentBuffer.length >= 5) {
+      const magnitudes = recentBuffer.map(d => highPassFilter(calculateMagnitude(d.x, d.y, d.z), baselineAccel));
       
+      // Calculate local maximum
+      const current = magnitudes[magnitudes.length - 1];
+      const prev1 = magnitudes[magnitudes.length - 2];
+      const prev2 = magnitudes[magnitudes.length - 3];
+      const prev3 = magnitudes[magnitudes.length - 4];
+      
+      // Multi-point peak detection
       const isPeak = smoothedMag > threshold && 
-                     smoothedMag > prev && 
-                     smoothedMag > prevPrev &&
-                     smoothedMag > lastPeak * 0.7; // Must be at least 70% of last peak
+                     current > prev1 && 
+                     prev1 > prev2 &&
+                     current > prev3 &&
+                     (lastPeak === 0 || smoothedMag > lastPeak * 0.5); // More lenient for varying intensity
       
       if (isPeak) {
         peakDetectionRef.current.lastPeak = smoothedMag;
@@ -141,7 +174,7 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
         stepTimestampsRef.current.push(timestamp);
         
         // Keep only recent timestamps for pace calculation
-        if (stepTimestampsRef.current.length > 20) {
+        if (stepTimestampsRef.current.length > 30) {
           stepTimestampsRef.current.shift();
         }
         
@@ -173,8 +206,8 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
       accelBufferRef.current.shift();
     }
 
-    // Update adaptive threshold periodically
-    if (accelBufferRef.current.length % 20 === 0) {
+    // Update adaptive threshold more frequently for better calibration
+    if (accelBufferRef.current.length % 10 === 0) {
       const magnitudes = accelBufferRef.current.map(d => calculateMagnitude(d.x, d.y, d.z));
       updateAdaptiveThreshold(magnitudes);
     }
