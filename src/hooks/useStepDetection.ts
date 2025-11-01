@@ -28,6 +28,8 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
   
   const [isTracking, setIsTracking] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'prompt' | 'unavailable'>('prompt');
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   // Advanced algorithm parameters
   const accelBufferRef = useRef<AccelData[]>([]);
@@ -232,12 +234,51 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
     }
   }, [detectStep, calculatePace, detectActivityType, calculateCalories, strideLength, updateAdaptiveThreshold]);
 
+  // Check permission status
+  const checkPermissionStatus = useCallback(async () => {
+    try {
+      // For web/development
+      if (typeof (Motion as any).requestPermissions !== 'function') {
+        setPermissionStatus('unavailable');
+        setPermissionError('Motion sensors unavailable. Deploy to mobile device for full functionality.');
+        return 'unavailable';
+      }
+
+      // For mobile: check current permission status
+      const status = await (Motion as any).checkPermissions?.();
+      
+      if (status?.motion === 'granted') {
+        setPermissionStatus('granted');
+        setPermissionGranted(true);
+        setPermissionError(null);
+        return 'granted';
+      } else if (status?.motion === 'denied') {
+        setPermissionStatus('denied');
+        setPermissionGranted(false);
+        setPermissionError('Motion sensor permission was denied. Please enable it in your device settings.');
+        return 'denied';
+      } else {
+        setPermissionStatus('prompt');
+        setPermissionError(null);
+        return 'prompt';
+      }
+    } catch (error) {
+      console.error('Error checking permission status:', error);
+      setPermissionStatus('unavailable');
+      setPermissionError('Unable to check motion sensor permissions.');
+      return 'unavailable';
+    }
+  }, []);
+
   // Start tracking
   const startTracking = useCallback(async () => {
     try {
+      setPermissionError(null);
+      
       // For web/development: simulate sensor data
       if (typeof (Motion as any).requestPermissions !== 'function') {
         setPermissionGranted(true);
+        setPermissionStatus('unavailable');
         setIsTracking(true);
         
         // Simulate step detection for testing
@@ -251,11 +292,13 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
         return;
       }
 
-      // For mobile: use actual sensors
+      // For mobile: request permissions
       const permission = await (Motion as any).requestPermissions();
       
       if (permission?.motion === 'granted') {
         setPermissionGranted(true);
+        setPermissionStatus('granted');
+        setPermissionError(null);
         
         // Start listening to accelerometer
         await Motion.addListener('accel', (event: any) => {
@@ -270,14 +313,22 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
 
         setIsTracking(true);
       } else {
-        console.error('Motion permission denied');
         setPermissionGranted(false);
+        setPermissionStatus('denied');
+        setPermissionError('Motion sensor permission was denied. Please enable it in your device settings to track steps.');
+        
+        throw new Error('Motion permission denied');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting step tracking:', error);
-      // Fallback to simulation on error
-      setPermissionGranted(true);
-      setIsTracking(true);
+      setPermissionError(error?.message || 'Failed to start motion tracking. Please try again.');
+      
+      // Fallback to simulation on error for development
+      if (typeof (Motion as any).requestPermissions !== 'function') {
+        setPermissionGranted(true);
+        setPermissionStatus('unavailable');
+        setIsTracking(true);
+      }
     }
   }, [processAccelData]);
 
@@ -325,9 +376,12 @@ export const useStepDetection = (userWeight: number = 70, userHeight: number = 1
     stepData,
     isTracking,
     permissionGranted,
+    permissionStatus,
+    permissionError,
     startTracking,
     stopTracking,
-    resetSteps
+    resetSteps,
+    checkPermissionStatus
   };
 };
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useStepDetection } from "@/hooks/useStepDetection";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,10 @@ import {
   Flame, 
   TrendingUp, 
   Activity,
-  MapPin
+  MapPin,
+  AlertCircle,
+  Settings,
+  RefreshCw
 } from "lucide-react";
 
 interface AdvancedStepCounterProps {
@@ -33,10 +37,15 @@ export const AdvancedStepCounter = ({
     stepData,
     isTracking,
     permissionGranted,
+    permissionStatus,
+    permissionError,
     startTracking,
     stopTracking,
-    resetSteps
+    resetSteps,
+    checkPermissionStatus
   } = useStepDetection(userWeight, userHeight);
+
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
 
   const progress = (stepData.steps / dailyGoal) * 100;
 
@@ -56,23 +65,52 @@ export const AdvancedStepCounter = ({
 
   const activityStyle = getActivityStyle();
 
-  // Auto-start tracking on mount
+  // Check permission and auto-start tracking on mount
   useEffect(() => {
     const initializeTracking = async () => {
-      await startTracking();
-      setSessionStartTime(new Date());
+      const status = await checkPermissionStatus();
       
-      if (!permissionGranted) {
-        toast({
-          title: "Permission Required",
-          description: "Please grant motion sensor permissions to track steps accurately.",
-          variant: "destructive"
-        });
+      if (status === 'granted' || status === 'unavailable') {
+        // Auto-start if permission already granted or on web
+        await startTracking();
+        setSessionStartTime(new Date());
+      } else {
+        // Show permission dialog if we need to request
+        setShowPermissionDialog(true);
       }
     };
 
     initializeTracking();
   }, []);
+
+  // Handle permission request
+  const handleRequestPermission = async () => {
+    setShowPermissionDialog(false);
+    await startTracking();
+    setSessionStartTime(new Date());
+    
+    if (!permissionGranted && permissionStatus === 'denied') {
+      toast({
+        title: "Permission Denied",
+        description: "Please enable motion sensors in your device settings.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Get platform-specific instructions
+  const getPlatformInstructions = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroid = /android/.test(userAgent);
+
+    if (isIOS) {
+      return "Settings → Privacy & Security → Motion & Fitness → Enable for this app";
+    } else if (isAndroid) {
+      return "Settings → Apps → Permissions → Physical Activity → Allow";
+    }
+    return "Go to your device settings and enable motion sensor permissions for this app";
+  };
 
   // Handle reset
   const handleReset = () => {
@@ -120,6 +158,60 @@ export const AdvancedStepCounter = ({
         <Footprints className="h-4 w-4 text-primary" />
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Permission Dialog */}
+        {showPermissionDialog && (
+          <Alert className="border-primary bg-primary/5">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Motion Sensor Access Needed</AlertTitle>
+            <AlertDescription className="mt-2 space-y-2">
+              <p className="text-sm">
+                To track your steps accurately, this app needs access to your device's motion sensors.
+              </p>
+              <Button 
+                onClick={handleRequestPermission}
+                className="w-full mt-2"
+                size="sm"
+              >
+                Grant Permission
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Permission Error Alert */}
+        {permissionStatus === 'denied' && permissionError && !showPermissionDialog && (
+          <Alert variant="destructive">
+            <Settings className="h-4 w-4" />
+            <AlertTitle>Permission Denied</AlertTitle>
+            <AlertDescription className="mt-2 space-y-3">
+              <p className="text-sm">{permissionError}</p>
+              <div className="bg-destructive/10 p-3 rounded text-xs space-y-1">
+                <p className="font-semibold">To enable:</p>
+                <p>{getPlatformInstructions()}</p>
+              </div>
+              <Button 
+                onClick={handleRequestPermission}
+                variant="outline"
+                className="w-full"
+                size="sm"
+              >
+                <RefreshCw className="h-3 w-3 mr-2" />
+                Try Again
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Web Development Notice */}
+        {permissionStatus === 'unavailable' && (
+          <Alert className="border-muted-foreground/20 bg-muted/30">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="text-sm">Development Mode</AlertTitle>
+            <AlertDescription className="text-xs mt-1">
+              Using simulated step data. Deploy to a mobile device for real motion tracking.
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Main step count */}
         <div>
           <div className="flex items-baseline gap-2">
@@ -189,13 +281,6 @@ export const AdvancedStepCounter = ({
           </Button>
         </div>
 
-        {/* Permission warning */}
-        {!permissionGranted && (
-          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-            <p className="font-medium mb-1">⚠️ Sensor Access Required</p>
-            <p>For mobile: Export to GitHub, run `npx cap sync`, and test on device.</p>
-          </div>
-        )}
 
         {/* Battery optimization tip */}
         {isTracking && (

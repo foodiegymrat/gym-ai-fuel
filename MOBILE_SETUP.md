@@ -196,17 +196,32 @@ The app includes:
 
 ## 🔐 Permissions
 
-The app requires:
-- **Motion Sensors**: Accelerometer access for step counting
-- **Storage**: Local storage for session persistence
+The app requires motion sensor permissions for accurate step tracking.
 
-On first use, users will be prompted to grant permissions.
+### Quick Setup
+
+**iOS** - Add to `ios/App/App/Info.plist`:
+```xml
+<key>NSMotionUsageDescription</key>
+<string>This app needs access to your motion sensors to accurately count your steps and track your fitness activities.</string>
+```
+
+**Android** - Add to `android/app/src/main/AndroidManifest.xml`:
+```xml
+<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+<uses-permission android:name="android.permission.BODY_SENSORS" />
+```
+
+**📖 For detailed permission setup and troubleshooting, see [PERMISSIONS_GUIDE.md](./PERMISSIONS_GUIDE.md)**
 
 ## 🐛 Troubleshooting
 
 ### "Permission Required" Error
-- **iOS**: Check Settings > Privacy > Motion & Fitness
-- **Android**: Check Settings > Apps > Permissions > Physical activity
+See the complete [PERMISSIONS_GUIDE.md](./PERMISSIONS_GUIDE.md) for detailed troubleshooting steps.
+
+**Quick Fixes:**
+- **iOS**: Settings → Privacy & Security → Motion & Fitness → Enable for app
+- **Android**: Settings → Apps → Permissions → Physical Activity → Allow
 
 ### No Steps Detected
 1. Ensure you're on a physical device (simulator won't have real sensors)
