@@ -33,88 +33,16 @@ const Index = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        >
-          <div className="absolute inset-0 bg-[var(--gradient-hero)] opacity-90" />
-        </div>
-        
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 text-foreground">
-            Fuel Your <span className="text-primary">Fitness Journey</span>
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            AI-powered nutrition tracking and recipe generation for gym enthusiasts. 
-            Track calories, count steps, and discover high-protein meals.
-          </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Button variant="hero" size="lg" onClick={() => navigate("/auth")}>
-              <ChefHat className="mr-2 h-5 w-5" />
-              Get AI Recipes
-            </Button>
-            <Button variant="outline" size="lg" className="bg-card/50 backdrop-blur-sm border-primary/30 hover:bg-card/80" onClick={() => navigate("/auth")}>
-              <TrendingUp className="mr-2 h-5 w-5" />
-              Track Progress
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Dashboard Section */}
-      <section className="py-12 px-4 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold mb-8 text-foreground flex items-center gap-2">
-          <TrendingUp className="h-8 w-8 text-primary" />
-          Your Daily Stats
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <CalorieTracker />
-          <AdvancedStepCounter />
-          <AIRecipeGenerator />
-        </div>
-
-        <CalorieChart />
-      </section>
-
-      {/* Recipes Section */}
-      <section className="py-12 px-4 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold mb-8 text-foreground flex items-center gap-2">
-          <BookOpen className="h-8 w-8 text-primary" />
-          Featured Recipes
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <RecipeCard 
-            title="Grilled Chicken Power Bowl"
-            image={recipe1}
-            calories={450}
-            protein={45}
-            cookTime="25 min"
-            tags={["High Protein", "Low Carb", "Meal Prep"]}
-          />
-          <RecipeCard 
-            title="Baked Salmon with Sweet Potato"
-            image={recipe2}
-            calories={520}
-            protein={38}
-            cookTime="30 min"
-            tags={["Omega-3", "Balanced", "Dinner"]}
-          />
-          <RecipeCard 
-            title="Protein-Packed Quinoa Salad"
-            image={recipe1}
-            calories={380}
-            protein={28}
-            cookTime="15 min"
-            tags={["Vegetarian", "Quick", "Lunch"]}
-          />
-        </div>
-
-        <div className="mt-8 text-center">
-          <Button variant="accent" size="lg">
-            View All Recipes
+      <section className="py-24 md:py-32 px-4 max-w-5xl mx-auto text-center">
+        <h1 className="text-5xl md:text-7xl font-bold mb-6 text-foreground">
+          Fuel Your <span className="text-primary">Fitness Journey</span>
+        </h1>
+        <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+          AI-powered nutrition tracking and recipe generation for gym enthusiasts.
+        </p>
+        <div className="flex gap-4 justify-center">
+          <Button variant="default" size="lg" onClick={() => navigate("/auth")}>
+            Get Started
           </Button>
         </div>
       </section>
