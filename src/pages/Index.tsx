@@ -8,6 +8,7 @@ import { RecipeCard } from "@/components/RecipeCard";
 import { AIRecipeGenerator } from "@/components/AIRecipeGenerator";
 import { ChefHat, TrendingUp, BookOpen, Dumbbell } from "lucide-react";
 import heroImage from "@/assets/hero-nutrition.jpg";
+import heroFoodFitness from "@/assets/hero-food-fitness.jpg";
 import recipe1 from "@/assets/recipe-1.jpg";
 import recipe2 from "@/assets/recipe-2.jpg";
 
@@ -33,17 +34,26 @@ const Index = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="py-24 md:py-32 px-4 max-w-5xl mx-auto text-center">
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 text-foreground">
-          Fuel Your <span className="text-primary">Fitness Journey</span>
-        </h1>
-        <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
-          AI-powered nutrition tracking and recipe generation for gym enthusiasts.
-        </p>
-        <div className="flex gap-4 justify-center">
-          <Button variant="default" size="lg" onClick={() => navigate("/auth")}>
-            Get Started
-          </Button>
+      <section className="relative py-24 md:py-32 px-4 overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroFoodFitness})` }}
+        >
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+        </div>
+        
+        <div className="relative z-10 max-w-5xl mx-auto text-center">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 text-foreground">
+            Fuel Your <span className="text-primary">Fitness Journey</span>
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+            AI-powered nutrition tracking and recipe generation for gym enthusiasts.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button variant="default" size="lg" onClick={() => navigate("/auth")}>
+              Get Started
+            </Button>
+          </div>
         </div>
       </section>
 
