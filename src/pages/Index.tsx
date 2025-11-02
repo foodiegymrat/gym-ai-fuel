@@ -50,11 +50,11 @@ const Index = () => {
             Track calories, count steps, and discover high-protein meals.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <Button variant="hero" size="lg">
+            <Button variant="hero" size="lg" onClick={() => navigate("/auth")}>
               <ChefHat className="mr-2 h-5 w-5" />
               Get AI Recipes
             </Button>
-            <Button variant="outline" size="lg" className="bg-card/50 backdrop-blur-sm border-primary/30 hover:bg-card/80">
+            <Button variant="outline" size="lg" className="bg-card/50 backdrop-blur-sm border-primary/30 hover:bg-card/80" onClick={() => navigate("/auth")}>
               <TrendingUp className="mr-2 h-5 w-5" />
               Track Progress
             </Button>
