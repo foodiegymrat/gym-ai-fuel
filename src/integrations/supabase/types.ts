@@ -206,28 +206,49 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
           avatar_url: string | null
           created_at: string
           email: string | null
+          fitness_goal: string | null
           full_name: string | null
+          gender: string | null
+          height: number | null
           id: string
+          maintenance_calories: number | null
+          onboarding_completed: boolean | null
           updated_at: string
+          weight: number | null
         }
         Insert: {
+          age?: number | null
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          fitness_goal?: string | null
           full_name?: string | null
+          gender?: string | null
+          height?: number | null
           id: string
+          maintenance_calories?: number | null
+          onboarding_completed?: boolean | null
           updated_at?: string
+          weight?: number | null
         }
         Update: {
+          age?: number | null
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          fitness_goal?: string | null
           full_name?: string | null
+          gender?: string | null
+          height?: number | null
           id?: string
+          maintenance_calories?: number | null
+          onboarding_completed?: boolean | null
           updated_at?: string
+          weight?: number | null
         }
         Relationships: []
       }

@@ -28,16 +28,40 @@ const Auth = () => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/dashboard");
+        // Check if onboarding is completed
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile?.onboarding_completed) {
+          navigate("/dashboard");
+        } else {
+          navigate("/onboarding");
+        }
       }
     };
 
     checkSession();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session && event === "SIGNED_IN") {
-        navigate("/dashboard");
+        // Check if onboarding is completed
+        setTimeout(async () => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("onboarding_completed")
+            .eq("id", session.user.id)
+            .single();
+
+          if (profile?.onboarding_completed) {
+            navigate("/dashboard");
+          } else {
+            navigate("/onboarding");
+          }
+        }, 0);
       }
     });
 
@@ -98,7 +122,7 @@ const Auth = () => {
         }
       } else {
         // Sign up
-        const redirectUrl = `${window.location.origin}/dashboard`;
+        const redirectUrl = `${window.location.origin}/onboarding`;
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -137,10 +161,10 @@ const Auth = () => {
           } else {
             toast({
               title: "Account Created!",
-              description: "You can now log in to your account.",
+              description: "Complete your profile to get started.",
             });
+            navigate("/onboarding");
           }
-          setIsLogin(true);
         }
       }
     } catch (error) {
