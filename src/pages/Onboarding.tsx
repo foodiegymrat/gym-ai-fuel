@@ -20,6 +20,7 @@ const Onboarding = () => {
     height: "",
     weight: "",
     fitnessGoal: "",
+    activityLevel: "",
   });
 
   const calculateMaintenanceCalories = (
@@ -27,6 +28,7 @@ const Onboarding = () => {
     gender: string,
     height: number,
     weight: number,
+    activityLevel: string,
     goal: string
   ): number => {
     // Mifflin-St Jeor Equation for BMR
@@ -40,8 +42,27 @@ const Onboarding = () => {
       bmr = 10 * weight + 6.25 * height - 5 * age - 78;
     }
 
-    // Assume moderate activity level (1.55 multiplier)
-    let maintenance = Math.round(bmr * 1.55);
+    // Apply activity level multiplier
+    let activityMultiplier = 1.2; // Default sedentary
+    switch (activityLevel) {
+      case "sedentary":
+        activityMultiplier = 1.2;
+        break;
+      case "lightly_active":
+        activityMultiplier = 1.375;
+        break;
+      case "moderately_active":
+        activityMultiplier = 1.55;
+        break;
+      case "very_active":
+        activityMultiplier = 1.725;
+        break;
+      case "extremely_active":
+        activityMultiplier = 1.9;
+        break;
+    }
+
+    let maintenance = Math.round(bmr * activityMultiplier);
 
     // Adjust based on goal
     switch (goal) {
@@ -70,10 +91,11 @@ const Onboarding = () => {
         formData.gender,
         parseFloat(formData.height),
         parseFloat(formData.weight),
+        formData.activityLevel,
         formData.fitnessGoal
       );
 
-      const { error } = await supabase
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           age: parseInt(formData.age),
@@ -86,7 +108,19 @@ const Onboarding = () => {
         })
         .eq("id", user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Create daily goal with the calculated calories
+      const { error: goalError } = await supabase
+        .from("daily_goals")
+        .insert({
+          user_id: user.id,
+          goal_type: formData.fitnessGoal as any,
+          target_calories: maintenanceCalories,
+          is_active: true,
+        });
+
+      if (goalError) throw goalError;
 
       toast({
         title: "Profile completed!",
@@ -185,6 +219,26 @@ const Onboarding = () => {
                   step="0.1"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="activity">Activity Level</Label>
+              <Select
+                value={formData.activityLevel}
+                onValueChange={(value) => setFormData({ ...formData, activityLevel: value })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your activity level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sedentary">Sedentary (Little or no exercise)</SelectItem>
+                  <SelectItem value="lightly_active">Lightly Active (1-3 days/week)</SelectItem>
+                  <SelectItem value="moderately_active">Moderately Active (3-5 days/week)</SelectItem>
+                  <SelectItem value="very_active">Very Active (6-7 days/week)</SelectItem>
+                  <SelectItem value="extremely_active">Extremely Active (Physical job + exercise)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
