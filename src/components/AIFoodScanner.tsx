@@ -15,6 +15,12 @@ interface FoodItem {
   carbs: number;
   fats: number;
   fiber: number;
+  originalPortion?: number;
+  originalCalories?: number;
+  originalProtein?: number;
+  originalCarbs?: number;
+  originalFats?: number;
+  originalFiber?: number;
 }
 
 interface AnalysisResult {
@@ -63,7 +69,26 @@ export const AIFoodScanner = () => {
 
       if (error) throw error;
 
-      setResult(data);
+      // Store original values for proportional recalculation
+      const enhancedData = {
+        ...data,
+        foods: data.foods.map((food: FoodItem) => {
+          const portionMatch = food.portion.match(/(\d+(?:\.\d+)?)/);
+          const portionNumber = portionMatch ? parseFloat(portionMatch[1]) : 100;
+          
+          return {
+            ...food,
+            originalPortion: portionNumber,
+            originalCalories: food.calories,
+            originalProtein: food.protein,
+            originalCarbs: food.carbs,
+            originalFats: food.fats,
+            originalFiber: food.fiber,
+          };
+        })
+      };
+
+      setResult(enhancedData);
       toast.success('Food analyzed successfully!');
     } catch (error: any) {
       console.error('Error analyzing food:', error);
@@ -282,21 +307,72 @@ export const AIFoodScanner = () => {
                             placeholder="Food name"
                             className="bg-background"
                           />
+                          <div className="space-y-2">
+                            <Label className="text-xs">Amount/Portion</Label>
+                            <Input
+                              value={editedFood?.portion || ''}
+                              onChange={(e) => {
+                                const newPortion = e.target.value;
+                                const newPortionMatch = newPortion.match(/(\d+(?:\.\d+)?)/);
+                                const newPortionNumber = newPortionMatch ? parseFloat(newPortionMatch[1]) : 0;
+                                
+                                if (newPortionNumber > 0 && editedFood?.originalPortion) {
+                                  const ratio = newPortionNumber / editedFood.originalPortion;
+                                  
+                                  setEditedFood({
+                                    ...editedFood,
+                                    portion: newPortion,
+                                    calories: Math.round((editedFood.originalCalories || 0) * ratio),
+                                    protein: Math.round((editedFood.originalProtein || 0) * ratio * 10) / 10,
+                                    carbs: Math.round((editedFood.originalCarbs || 0) * ratio * 10) / 10,
+                                    fats: Math.round((editedFood.originalFats || 0) * ratio * 10) / 10,
+                                    fiber: Math.round((editedFood.originalFiber || 0) * ratio * 10) / 10,
+                                  });
+                                } else {
+                                  setEditedFood({ ...editedFood!, portion: newPortion });
+                                }
+                              }}
+                              placeholder="e.g., 100g, 1 cup"
+                              className="bg-background"
+                            />
+                          </div>
                           <div className="grid grid-cols-2 gap-2">
-                            <Input
-                              type="number"
-                              value={editedFood?.calories || 0}
-                              onChange={(e) => setEditedFood({ ...editedFood!, calories: parseFloat(e.target.value) })}
-                              placeholder="Calories"
-                              className="bg-background"
-                            />
-                            <Input
-                              type="number"
-                              value={editedFood?.protein || 0}
-                              onChange={(e) => setEditedFood({ ...editedFood!, protein: parseFloat(e.target.value) })}
-                              placeholder="Protein (g)"
-                              className="bg-background"
-                            />
+                            <div>
+                              <Label className="text-xs">Calories</Label>
+                              <Input
+                                type="number"
+                                value={editedFood?.calories || 0}
+                                onChange={(e) => setEditedFood({ ...editedFood!, calories: parseFloat(e.target.value) })}
+                                className="bg-background"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Protein (g)</Label>
+                              <Input
+                                type="number"
+                                value={editedFood?.protein || 0}
+                                onChange={(e) => setEditedFood({ ...editedFood!, protein: parseFloat(e.target.value) })}
+                                className="bg-background"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Carbs (g)</Label>
+                              <Input
+                                type="number"
+                                value={editedFood?.carbs || 0}
+                                onChange={(e) => setEditedFood({ ...editedFood!, carbs: parseFloat(e.target.value) })}
+                                className="bg-background"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Fats (g)</Label>
+                              <Input
+                                type="number"
+                                value={editedFood?.fats || 0}
+                                onChange={(e) => setEditedFood({ ...editedFood!, fats: parseFloat(e.target.value) })}
+                                className="bg-background"
+                              />
+                            </div>
                           </div>
                           <div className="flex gap-2">
                             <Button onClick={saveEdit} size="sm" variant="default">
