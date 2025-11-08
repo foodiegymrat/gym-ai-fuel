@@ -156,17 +156,37 @@ export const AIFoodScanner = () => {
       }
 
       const today = new Date().toISOString().split('T')[0];
+      const mealName = result.foods.map(f => f.name).join(', ');
 
-      // Check if today's summary exists
+      // Insert individual food items into meals table
+      const mealInserts = result.foods.map(food => ({
+        user_id: user.id,
+        meal_name: food.name,
+        meal_type: 'snack',
+        meal_date: today,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fats: food.fats,
+        fiber: food.fiber,
+        notes: `Portion: ${food.portion}`
+      }));
+
+      const { error: mealsError } = await supabase
+        .from('meals')
+        .insert(mealInserts);
+
+      if (mealsError) throw mealsError;
+
+      // Update daily summary
       const { data: existingSummary } = await supabase
         .from('daily_summaries')
         .select('*')
         .eq('user_id', user.id)
         .eq('summary_date', today)
-        .single();
+        .maybeSingle();
 
       if (existingSummary) {
-        // Update existing summary
         const { error } = await supabase
           .from('daily_summaries')
           .update({
@@ -174,12 +194,12 @@ export const AIFoodScanner = () => {
             total_protein: existingSummary.total_protein + result.total.protein,
             total_carbs: existingSummary.total_carbs + result.total.carbs,
             total_fats: existingSummary.total_fats + result.total.fats,
+            total_fiber: existingSummary.total_fiber + result.total.fiber,
           })
           .eq('id', existingSummary.id);
 
         if (error) throw error;
       } else {
-        // Create new summary
         const { error } = await supabase
           .from('daily_summaries')
           .insert({
@@ -189,6 +209,7 @@ export const AIFoodScanner = () => {
             total_protein: result.total.protein,
             total_carbs: result.total.carbs,
             total_fats: result.total.fats,
+            total_fiber: result.total.fiber,
           });
 
         if (error) throw error;
