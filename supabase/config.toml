@@ -1,7 +1,7 @@
 project_id = "lgmiuthksmbfbeztejgw"
 
 [functions.analyze-food]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-recipe]
-verify_jwt = false
+verify_jwt = true
