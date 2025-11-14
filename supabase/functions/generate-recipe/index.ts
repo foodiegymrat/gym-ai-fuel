@@ -14,8 +14,34 @@ serve(async (req) => {
   try {
     const { ingredients, cookingTime } = await req.json();
     
-    if (!ingredients || !cookingTime) {
-      throw new Error('Ingredients and cooking time are required');
+    // Validate ingredients presence and length
+    if (!ingredients) {
+      return new Response(
+        JSON.stringify({ error: 'Ingredients are required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    if (ingredients.length > 500) {
+      return new Response(
+        JSON.stringify({ error: 'Ingredients must be 500 characters or less' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Validate cooking time presence and range
+    if (!cookingTime) {
+      return new Response(
+        JSON.stringify({ error: 'Cooking time is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    if (cookingTime < 1 || cookingTime > 240) {
+      return new Response(
+        JSON.stringify({ error: 'Cooking time must be between 1 and 240 minutes' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
