@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Camera, Upload, Loader2, Edit2, Save, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface FoodItem {
   name: string;
@@ -159,11 +160,13 @@ export const AIFoodScanner = () => {
       const mealName = result.foods.map(f => f.name).join(', ');
 
       // Insert individual food items into meals table
+      const currentTime = format(new Date(), 'HH:mm:ss');
       const mealInserts = result.foods.map(food => ({
         user_id: user.id,
         meal_name: food.name,
         meal_type: 'snack',
         meal_date: today,
+        meal_time: currentTime,
         calories: food.calories,
         protein: food.protein,
         carbs: food.carbs,
