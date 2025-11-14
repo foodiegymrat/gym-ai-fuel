@@ -26,24 +26,53 @@ export const CalorieTracker = () => {
   useEffect(() => {
     fetchTodaysData();
     
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('daily-summaries-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'daily_summaries'
-        },
-        () => {
-          fetchTodaysData();
-        }
-      )
-      .subscribe();
+    // Get current user for filtering
+    const setupSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Set up real-time subscription for daily summaries
+      const channel = supabase
+        .channel('calorie-tracker-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'daily_summaries',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Daily summary updated:', payload);
+            fetchTodaysData();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'meals',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Meal added:', payload);
+            fetchTodaysData();
+          }
+        )
+        .subscribe();
+
+      return channel;
+    };
+
+    const channelPromise = setupSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
+      channelPromise.then(channel => {
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
+      });
     };
   }, []);
 
