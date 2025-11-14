@@ -97,23 +97,30 @@ export const CalorieChart = () => {
             .lte('meal_date', format(endDate, 'yyyy-MM-dd'))
             .order('meal_time', { ascending: true });
 
-          const hourlyData: { [key: string]: ChartData } = {};
+          const hourlyData: { [key: number]: ChartData } = {};
           todayMeals?.forEach(meal => {
             const hour = meal.meal_time ? parseInt(meal.meal_time.split(':')[0]) : 12;
-            const period = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
             
-            if (!hourlyData[period]) {
-              hourlyData[period] = { name: period, calories: 0, protein: 0, carbs: 0, fats: 0, goal: dailyGoal / 3 };
+            if (!hourlyData[hour]) {
+              const displayTime = hour === 0 ? '12 AM' : 
+                                 hour < 12 ? `${hour} AM` : 
+                                 hour === 12 ? '12 PM' : 
+                                 `${hour - 12} PM`;
+              hourlyData[hour] = { name: displayTime, calories: 0, protein: 0, carbs: 0, fats: 0 };
             }
-            hourlyData[period].calories += Number(meal.calories) || 0;
-            hourlyData[period].protein += Number(meal.protein) || 0;
-            hourlyData[period].carbs += Number(meal.carbs) || 0;
-            hourlyData[period].fats += Number(meal.fats) || 0;
+            hourlyData[hour].calories += Number(meal.calories) || 0;
+            hourlyData[hour].protein += Number(meal.protein) || 0;
+            hourlyData[hour].carbs += Number(meal.carbs) || 0;
+            hourlyData[hour].fats += Number(meal.fats) || 0;
           });
           
-          setData(['Morning', 'Afternoon', 'Evening'].map(p => 
-            hourlyData[p] || { name: p, calories: 0, protein: 0, carbs: 0, fats: 0, goal: dailyGoal / 3 }
-          ));
+          // Convert to array sorted by hour
+          const sortedData = Object.keys(hourlyData)
+            .map(Number)
+            .sort((a, b) => a - b)
+            .map(hour => hourlyData[hour]);
+          
+          setData(sortedData);
           break;
 
         case "week":
