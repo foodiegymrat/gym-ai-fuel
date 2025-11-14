@@ -190,11 +190,11 @@ export const AIFoodScanner = () => {
         const { error } = await supabase
           .from('daily_summaries')
           .update({
-            total_calories: existingSummary.total_calories + result.total.calories,
-            total_protein: existingSummary.total_protein + result.total.protein,
-            total_carbs: existingSummary.total_carbs + result.total.carbs,
-            total_fats: existingSummary.total_fats + result.total.fats,
-            total_fiber: existingSummary.total_fiber + result.total.fiber,
+            total_calories: (Number(existingSummary.total_calories) || 0) + result.total.calories,
+            total_protein: (Number(existingSummary.total_protein) || 0) + result.total.protein,
+            total_carbs: (Number(existingSummary.total_carbs) || 0) + result.total.carbs,
+            total_fats: (Number(existingSummary.total_fats) || 0) + result.total.fats,
+            total_fiber: (Number(existingSummary.total_fiber) || 0) + result.total.fiber,
           })
           .eq('id', existingSummary.id);
 
