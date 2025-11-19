@@ -97,30 +97,37 @@ export const CalorieChart = () => {
             .lte('meal_date', format(endDate, 'yyyy-MM-dd'))
             .order('meal_time', { ascending: true });
 
-          const hourlyData: { [key: number]: ChartData } = {};
-          todayMeals?.forEach(meal => {
-            const hour = meal.meal_time ? parseInt(meal.meal_time.split(':')[0]) : 12;
+          // Create time slots throughout the day (every 2 hours from 6 AM to 10 PM)
+          const timeSlots = [6, 8, 10, 12, 14, 16, 18, 20, 22];
+          const cumulativeData: ChartData[] = [];
+
+          timeSlots.forEach(hour => {
+            // Calculate cumulative totals for all meals up to this hour
+            const mealsUpToThisHour = todayMeals?.filter(meal => {
+              const mealHour = meal.meal_time ? parseInt(meal.meal_time.split(':')[0]) : 12;
+              return mealHour <= hour;
+            }) || [];
+
+            const totalCalories = mealsUpToThisHour.reduce((sum, meal) => sum + (Number(meal.calories) || 0), 0);
+            const totalProtein = mealsUpToThisHour.reduce((sum, meal) => sum + (Number(meal.protein) || 0), 0);
+            const totalCarbs = mealsUpToThisHour.reduce((sum, meal) => sum + (Number(meal.carbs) || 0), 0);
+            const totalFats = mealsUpToThisHour.reduce((sum, meal) => sum + (Number(meal.fats) || 0), 0);
+
+            const displayTime = hour === 12 ? '12 PM' : 
+                               hour < 12 ? `${hour} AM` : 
+                               `${hour - 12} PM`;
             
-            if (!hourlyData[hour]) {
-              const displayTime = hour === 0 ? '12 AM' : 
-                                 hour < 12 ? `${hour} AM` : 
-                                 hour === 12 ? '12 PM' : 
-                                 `${hour - 12} PM`;
-              hourlyData[hour] = { name: displayTime, calories: 0, protein: 0, carbs: 0, fats: 0 };
-            }
-            hourlyData[hour].calories += Number(meal.calories) || 0;
-            hourlyData[hour].protein += Number(meal.protein) || 0;
-            hourlyData[hour].carbs += Number(meal.carbs) || 0;
-            hourlyData[hour].fats += Number(meal.fats) || 0;
+            cumulativeData.push({
+              name: displayTime,
+              calories: totalCalories,
+              protein: totalProtein,
+              carbs: totalCarbs,
+              fats: totalFats,
+              goal: dailyGoal
+            });
           });
           
-          // Convert to array sorted by hour
-          const sortedData = Object.keys(hourlyData)
-            .map(Number)
-            .sort((a, b) => a - b)
-            .map(hour => hourlyData[hour]);
-          
-          setData(sortedData);
+          setData(cumulativeData);
           break;
 
         case "week":
